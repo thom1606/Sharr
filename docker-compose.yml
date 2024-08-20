@@ -1,0 +1,46 @@
+version: "3.9"
+services:
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+    volumes:
+      - ./volumes/radarr/config:/config
+      - ./volumes/movies:/movies
+      - ./volumes/downloads:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+    volumes:
+      - ./volumes/sonarr/config:/config
+      - ./volumes/tv:/tv
+      - ./volumes/downloads:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+  sharr:
+    build: .
+    container_name: sharr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+      - PLEX_EXTRA_USER_TOKENS=token2,token3
+      - PLEX_OWNER_TOKEN=token1
+      - IGNORE_PREFERRED_SERVICES=false
+    volumes:
+      - .:/app
+    ports:
+      - 6464:6464
+    command: sh -c "bun install && bun run server.ts"
+    restart: unless-stopped
