@@ -36,6 +36,8 @@ jobs:
         strategy:
             matrix:
                 bun-version: [latest]
+        env:
+            PLEX_OWNER_TOKEN: ${{ secrets.PLEX_OWNER_TOKEN }}
         steps:
             - name: Checkout source code
               uses: actions/checkout@v4
