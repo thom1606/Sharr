@@ -5,6 +5,9 @@ on:
     branches:
       - release/production
 
+env:
+    PLEX_OWNER_TOKEN: ${{ secrets.PLEX_OWNER_TOKEN }}
+
 jobs:
   test:
     name: Test
