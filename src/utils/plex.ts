@@ -86,7 +86,7 @@ export const getWatchlist = async (
 			: (resServices.json() as Promise<{
 					MediaContainer: {
 						size: number;
-						Metadata: Array<{
+						Metadata?: Array<{
 							guid: string;
 						}>;
 					};
@@ -97,7 +97,7 @@ export const getWatchlist = async (
 		return [];
 	}
 
-	const excludeGuids = bodyServices.MediaContainer.Metadata.map(
+	const excludeGuids = (bodyServices.MediaContainer.Metadata ?? []).map(
 		(item) => item.guid,
 	);
 
