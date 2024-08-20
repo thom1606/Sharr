@@ -1,6 +1,6 @@
 ![Banner](./assets/images/readme-banner.png)
 
-Welcome to the **Sharr** repository! This is a simple docker service which allows you to download shows and movies from your Plex watchlist. It uses the Plex API to get the watchlist and gives you a list compatible with radarr and sonarr.
+Welcome to the **Sharr** repository! This is a simple docker service which allows you to import shows and movies from your Plex watchlist. It uses the Plex API to get the watchlist and gives you a list compatible with Radarr and Sonarr.
 
 ## Project Overview
 
@@ -24,7 +24,7 @@ services:
 ```
 
 2. Start your docker containers
-3. Add the service url to your radarr or sonarr settings
+3. Add the service url to your Radarr or Sonarr settings
 
 ### Setting up Radarr
 
