@@ -31,7 +31,18 @@ jobs:
         id: version
         run: echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
 
+      - name: Check if Docker image version exists
+        id: image-check
+        run: |
+          if docker manifest inspect ${{ secrets.DOCKER_USERNAME }}/sharr:${{ env.VERSION }} > /dev/null 2>&1; then
+            echo "Image version ${{ env.VERSION }} already exists."
+            exit 1
+          else
+            echo "Image version ${{ env.VERSION }} does not exist."
+          fi
+
       - name: Build and push Docker image
+        if: steps.image-check.outcome != 'failure'
         uses: docker/build-push-action@v6
         with:
           context: .
