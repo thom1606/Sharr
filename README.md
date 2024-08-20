@@ -13,7 +13,7 @@ Sharr converts your watchlist into lists which are compatible with many differen
 ```yaml
 services:
   sharr:
-    image: ghcr.io/itsmattburgess/sharr:latest
+    image: thom1606/sharr:latest
     container_name: sharr
     ports:
       - 6464:6464
