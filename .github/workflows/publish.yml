@@ -36,5 +36,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/sharr:latest
-          tags: ${{ secrets.DOCKER_USERNAME }}/sharr:${{ env.VERSION }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/sharr:latest
+            ${{ secrets.DOCKER_USERNAME }}/sharr:${{ env.VERSION }}
