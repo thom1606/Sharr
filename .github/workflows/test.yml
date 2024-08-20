@@ -2,10 +2,6 @@ name: Test
 
 on:
     workflow_call:
-        inputs:
-            PLEX_OWNER_TOKEN:
-                required: true
-                type: string
     pull_request:
         types:
             - opened
@@ -41,7 +37,7 @@ jobs:
             matrix:
                 bun-version: [latest]
         env:
-            PLEX_OWNER_TOKEN: ${{ inputs.PLEX_OWNER_TOKEN || secrets.PLEX_OWNER_TOKEN }}
+            PLEX_OWNER_TOKEN: ${{ secrets.PLEX_OWNER_TOKEN }}
         steps:
             - name: Checkout source code
               uses: actions/checkout@v4

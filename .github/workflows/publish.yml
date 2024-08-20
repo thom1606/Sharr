@@ -7,11 +7,8 @@ on:
 
 jobs:
   test:
-    name: Test
     uses: ./.github/workflows/test.yml
-    with:
-      PLEX_OWNER_TOKEN: ${{ secrets.PLEX_OWNER_TOKEN }}
-
+    secrets: inherit
 
   build:
     needs:
