@@ -49,5 +49,5 @@ jobs:
           push: true
           platforms: linux/amd64, linux/arm64
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/sharr:latest
             ${{ secrets.DOCKER_USERNAME }}/sharr:${{ env.VERSION }}
+            ${{ secrets.DOCKER_USERNAME }}/sharr:latest
