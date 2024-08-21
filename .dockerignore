@@ -8,15 +8,15 @@ yarn-error.log*
 
 # project
 .vscode
+.github
+assets
+volumes
 .dockerignore
 .env.example
 .gitattributes
 .gitignore
-Dockerfile
 docker-compose.yml
+Dockerfile
 README.md
-node_modules
-volumes
 localstorage.sqlite
-api.paw
-assets
+node_modules

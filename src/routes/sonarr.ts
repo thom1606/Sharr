@@ -1,10 +1,5 @@
 import express from 'express';
-import {
-	type MediaItem,
-	PlexMediaType,
-	getStreamingServices,
-	getWatchlist,
-} from '../utils/plex';
+import { type MediaItem, PlexMediaType, getWatchlist } from '../utils/plex';
 
 export const sonarrRoute = express().get('/sonarr', async (_, res) => {
 	// get the watchlist from all the users
@@ -14,6 +9,7 @@ export const sonarrRoute = express().get('/sonarr', async (_, res) => {
 	].filter((token) => Boolean(token) && (token ?? '').length > 0);
 	const finalWatchlist: MediaItem[] = [];
 
+	// Whether or not to include streamable items
 	const includeStreamable =
 		(process.env.IGNORE_PREFERRED_SERVICES ?? '') === 'true';
 
@@ -27,6 +23,7 @@ export const sonarrRoute = express().get('/sonarr', async (_, res) => {
 		finalWatchlist.push(...watchlist);
 	}
 
+	// Map the response to a valid Sonarr response
 	res.json(
 		finalWatchlist.map((item) => ({
 			tvdbId: item.tvdbId,

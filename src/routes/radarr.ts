@@ -9,6 +9,7 @@ export const radarrRoute = express().get('/radarr', async (_, res) => {
 	].filter((token) => Boolean(token) && (token ?? '').length > 0);
 	const finalWatchlist: MediaItem[] = [];
 
+	// Whether or not to include streamable items
 	const includeStreamable =
 		(process.env.IGNORE_PREFERRED_SERVICES ?? '') === 'true';
 	for (const client of clients) {
@@ -21,6 +22,7 @@ export const radarrRoute = express().get('/radarr', async (_, res) => {
 		finalWatchlist.push(...watchlist);
 	}
 
+	// Map the response to a valid Radarr response
 	res.json(
 		finalWatchlist.map((item) => ({
 			id: item.tmdbId,
