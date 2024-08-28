@@ -5,6 +5,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Supported services
 - All documented Plex functions
 
+## 1.0.2
+
+_released `28 Aug 2024`_
+
+This release fixes a bug with large plex watchlists. We are sorry for the inconvenience. 🙏
+
+- 🐛 Bug fixes
+    - We now fetch the watchlist in chunks of 300 items and keep fetching until we have all items.
+
 ## 1.0.1
 
 _released `21 Aug 2024`_
