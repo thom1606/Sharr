@@ -1,6 +1,6 @@
 {
 	"name": "sharr",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"module": "server.ts",
 	"type": "module",
 	"repository": "https://github.com/thom1606/sharr.git",
