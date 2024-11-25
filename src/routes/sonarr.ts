@@ -17,10 +17,14 @@ export const sonarrRoute = express().get('/sonarr', async (_, res) => {
 		if (!client) {
 			continue;
 		}
-		const watchlist = (
-			await getWatchlist(client, PlexMediaType.Show, includeStreamable)
-		).filter((item) => Boolean(item.tmdbId));
-		finalWatchlist.push(...watchlist);
+		try {
+			const watchlist = (
+				await getWatchlist(client, PlexMediaType.Show, includeStreamable)
+			).filter((item) => Boolean(item.tmdbId));
+			finalWatchlist.push(...watchlist);
+		} catch {
+			console.error('Failed to get watchlist for client:', client);
+		}
 	}
 
 	// Map the response to a valid Sonarr response
