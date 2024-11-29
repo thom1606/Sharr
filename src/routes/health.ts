@@ -20,12 +20,14 @@ export const healthRoute = express().get('/health', async (_, res) => {
 			}
 		} catch {
 			// If a single client fails, return a 401
-			return res
-				.status(401)
-				.json({ error: `Failed  health check for user: ${client}`, client });
+			res.status(401).json({
+				error: `Failed  health check for user: ${client}`,
+				client,
+			});
+			return;
 		}
 	}
 
 	// If all clients are healthy, return a 200
-	res.status(200).json({ status: 'ok' });
+	res.json({ status: 'ok' });
 });

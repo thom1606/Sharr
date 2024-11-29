@@ -7,9 +7,9 @@ import { sonarrRoute } from './src/routes/sonarr';
 const app = express();
 
 // ROUTES
+app.use(healthRoute);
 app.use(radarrRoute);
 app.use(sonarrRoute);
-app.use(healthRoute);
 
 const server = app.listen(6464);
 
