@@ -5,6 +5,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Supported services
 - All documented Plex functions
 
+## 1.0.5
+
+_released `29 Nov 2024`_
+
+This release I fixed a bug where the health check could not succeed due to a missing dependency.
+
+- 🐛 Bug fixes
+    - The health check could not succeed duo to a missing dependency. This has been fixed.
+
 ## 1.0.4
 
 _released `29 Nov 2024`_
