@@ -9,6 +9,7 @@
 	"scripts": {
 		"dev": "bun --hot run server.ts",
 		"start": "bun run server.ts",
+		"health": "bun run health.ts",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"typecheck": "tsc --noEmit"
