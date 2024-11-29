@@ -47,3 +47,9 @@ services:
 | PLEX_OWNER_TOKEN | The token for the owner of the plex server | |
 | PLEX_EXTRA_USER_TOKENS | A comma separated list of tokens for extra users | |
 | IGNORE_PREFERRED_SERVERS | Whether to ignore your preferred services | false |
+
+## FAQ
+
+### Where do i find my Plex token?
+
+The plex token can be found by inspecting the network requests in your browser. You can find a guide [here](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/). Every request will have a `X-Plex-Token` header which you can copy.
