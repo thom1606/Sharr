@@ -15,6 +15,21 @@ export interface MediaItem {
 	tmdbId?: string;
 }
 
+export const getHealthCheck = async (
+	plexUserToken: string,
+): Promise<boolean> => {
+	const res = await fetch(
+		`https://clients.plex.tv/api/v2/user?X-Plex-Token=${plexUserToken}`,
+		{
+			headers: {
+				Accept: 'application/json',
+			},
+		},
+	);
+
+	return res.ok;
+};
+
 /**
  * Fetch the watchlist of a user (only returns released media items)
  * @param plexUserToken The user of which to fetch the watchlist

@@ -5,6 +5,24 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Supported services
 - All documented Plex functions
 
+## 1.0.4
+
+_released `29 Nov 2024`_
+
+This release intergrates a new health check endpoint. You can now check if the service is running as expected.
+
+- ⭐️ New features
+    - A healt check is run every 3 hours to ensure the service is running as expected.
+
+## 1.0.3
+
+_released `25 Nov 2024`_
+
+This release fixes an issue where invalid plex tokens would block the whole process. We now skip the account and continue with the next one.
+
+- 🐛 Bug fixes
+    - We now skip the account and continue with the next one if the token is invalid.
+
 ## 1.0.2
 
 _released `28 Aug 2024`_

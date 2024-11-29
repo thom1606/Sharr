@@ -18,3 +18,6 @@ EXPOSE 6464
 
 # Command to run the application
 CMD ["bun", "run", "server.ts"]
+
+HEALTHCHECK --interval=3h --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:6464/health || exit 1
