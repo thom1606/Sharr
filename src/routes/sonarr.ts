@@ -1,7 +1,6 @@
-import express from 'express';
 import { type MediaItem, PlexMediaType, getWatchlist } from '../utils/plex';
 
-export const sonarrRoute = express().get('/sonarr', async (_, res) => {
+export async function sonarrHandler(req: Request) {
 	// get the watchlist from all the users
 	const clients = [
 		process.env.PLEX_OWNER_TOKEN,
@@ -28,9 +27,9 @@ export const sonarrRoute = express().get('/sonarr', async (_, res) => {
 	}
 
 	// Map the response to a valid Sonarr response
-	res.json(
+	return Response.json(
 		finalWatchlist.map((item) => ({
 			tvdbId: item.tvdbId,
 		})),
 	);
-});
+}

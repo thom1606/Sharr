@@ -1,22 +1,29 @@
-import express from 'express';
+import type { ServeOptions } from 'bun';
+import { healthHandler } from './src/routes/health';
+import { radarrHandler } from './src/routes/radarr';
+import { sonarrHandler } from './src/routes/sonarr';
 
-import { healthRoute } from './src/routes/health';
-import { radarrRoute } from './src/routes/radarr';
-import { sonarrRoute } from './src/routes/sonarr';
+const server = Bun.serve({
+	port: 6464,
+	async fetch(req) {
+		const url = new URL(req.url);
 
-const app = express();
+		// Route handlers
+		switch (url.pathname) {
+			case '/health':
+				return await healthHandler(req);
+			case '/radarr':
+				return await radarrHandler(req);
+			case '/sonarr':
+				return await sonarrHandler(req);
+			default:
+				return new Response('Not Found', { status: 404 });
+		}
+	},
+});
 
-// ROUTES
-app.use(healthRoute);
-app.use(radarrRoute);
-app.use(sonarrRoute);
+console.log(`Listening on http://localhost:${server.port}`);
 
-const server = app.listen(6464);
-
-function exitHandler() {
-	server.close();
-}
-
-// Close all the connection
-process.on('SIGTERM', exitHandler);
-process.on('SIGINT', exitHandler);
+// Handle graceful shutdown
+process.on('SIGTERM', () => server.stop());
+process.on('SIGINT', () => server.stop());

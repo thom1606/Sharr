@@ -5,6 +5,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Supported services
 - All documented Plex functions
 
+## 1.0.6
+
+_released `03 Feb 2025`_
+
+This release adds performance improvements by switching to Bun serve instead of Express.
+
+- 🐎 Performance improvements
+    - Switching to Bun serve instead of Express.
+
 ## 1.0.5
 
 _released `29 Nov 2024`_

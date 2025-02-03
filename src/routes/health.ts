@@ -1,7 +1,6 @@
-import express from 'express';
 import { getHealthCheck } from '../utils/plex';
 
-export const healthRoute = express().get('/health', async (_, res) => {
+export async function healthHandler(req: Request) {
 	// get all the active plex tokens
 	const clients = [
 		process.env.PLEX_OWNER_TOKEN,
@@ -20,14 +19,16 @@ export const healthRoute = express().get('/health', async (_, res) => {
 			}
 		} catch {
 			// If a single client fails, return a 401
-			res.status(401).json({
-				error: `Failed  health check for user: ${client}`,
-				client,
-			});
-			return;
+			return Response.json(
+				{
+					error: `Failed health check for user: ${client}`,
+					client,
+				},
+				{ status: 401 },
+			);
 		}
 	}
 
 	// If all clients are healthy, return a 200
-	res.json({ status: 'ok' });
-});
+	return Response.json({ status: 'ok' });
+}

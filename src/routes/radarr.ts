@@ -1,7 +1,6 @@
-import express from 'express';
 import { type MediaItem, PlexMediaType, getWatchlist } from '../utils/plex';
 
-export const radarrRoute = express().get('/radarr', async (_, res) => {
+export async function radarrHandler(req: Request) {
 	// get the watchlist from all the users
 	const clients = [
 		process.env.PLEX_OWNER_TOKEN,
@@ -27,9 +26,9 @@ export const radarrRoute = express().get('/radarr', async (_, res) => {
 	}
 
 	// Map the response to a valid Radarr response
-	res.json(
+	return Response.json(
 		finalWatchlist.map((item) => ({
 			id: item.tmdbId,
 		})),
 	);
-});
+}
