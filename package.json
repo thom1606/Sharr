@@ -5,7 +5,7 @@
 	"repository": "https://github.com/thom1606/sharr.git",
 	"module": "server.ts",
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
+		"@biomejs/biome": "2.2.2",
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
