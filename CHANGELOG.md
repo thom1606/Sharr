@@ -5,6 +5,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Supported services
 - All documented Plex functions
 
+## 1.0.7
+
+_released `05 Jan 2026`_
+
+This release only adds a fallback for invalid plex tokens so your radarr or sonarr won't be cleared when they invalidate.
+
 ## 1.0.6
 
 _released `03 Feb 2025`_
