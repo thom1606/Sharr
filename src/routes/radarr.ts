@@ -21,7 +21,14 @@ export async function radarrHandler(req: Request) {
 			).filter((item) => Boolean(item.tmdbId));
 			finalWatchlist.push(...watchlist);
 		} catch {
-			console.error('Failed to get watchlist for client:', client);
+			return Response.json(
+				{
+					error: `Failed to get watchlist for client: ${client}`,
+					code: 'FAILED_TO_GET_WATCHLIST',
+					client,
+				},
+				{ status: 500 },
+			);
 		}
 	}
 

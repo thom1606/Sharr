@@ -1,6 +1,6 @@
 {
 	"name": "sharr",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"author": "Thom van den Broek <info@thomvandenbroek.com>",
 	"repository": "https://github.com/thom1606/sharr.git",
 	"module": "server.ts",
