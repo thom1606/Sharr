@@ -1,3 +1,6 @@
+import { getRequestTimeoutMs } from '../config';
+import { fetchPlexJson } from './http';
+
 export enum PlexMediaType {
 	Movie = '1',
 	Show = '2',
@@ -15,19 +18,171 @@ export interface MediaItem {
 	tmdbId?: string;
 }
 
-export const getHealthCheck = async (
+interface PlexMetadata {
+	guid?: string;
+	ratingKey: string;
+	type: string;
+	title: string;
+	originallyAvailableAt: string;
+	year: number;
+	Guid?: Array<{ id: string }>;
+}
+
+interface PlexContainer<T> {
+	MediaContainer: {
+		totalSize?: number;
+		size?: number;
+		Metadata?: T[];
+	};
+}
+
+const DISCOVER_URL = 'https://discover.provider.plex.tv';
+const PAGE_SIZE = 300;
+/** Hard stop so a misbehaving API can never spin us forever. */
+const MAX_PAGES = 100;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Pull an external id (imdb/tvdb/tmdb) out of the Plex `Guid` list. */
+const findGuid = (guids: Array<{ id: string }> | undefined, prefix: string) =>
+	guids
+		?.find((guid) => guid.id.startsWith(`${prefix}://`))
+		?.id.slice(prefix.length + 3);
+
+/** Convert a raw Plex metadata entry into our own shape. */
+export const toMediaItem = (item: PlexMetadata): MediaItem => ({
+	id: item.ratingKey,
+	type: item.type === 'movie' ? PlexMediaType.Movie : PlexMediaType.Show,
+	title: item.title,
+	originallyAvailableAt: item.originallyAvailableAt,
+	year: item.year,
+	imdbId: findGuid(item.Guid, 'imdb'),
+	tvdbId: findGuid(item.Guid, 'tvdb'),
+	tmdbId: findGuid(item.Guid, 'tmdb'),
+});
+
+/**
+ * Whether a release date is in the past. Media without a usable date is treated
+ * as unreleased so announced-but-unavailable titles never reach Radarr/Sonarr.
+ */
+export const isReleased = (
+	originallyAvailableAt: string | undefined,
+	now = new Date(),
+): boolean => {
+	if (!originallyAvailableAt) {
+		return false;
+	}
+	const released = new Date(originallyAvailableAt);
+	return !Number.isNaN(released.getTime()) && released < now;
+};
+
+const watchlistUrl = (
 	plexUserToken: string,
-): Promise<boolean> => {
-	const res = await fetch(
-		`https://clients.plex.tv/api/v2/user?X-Plex-Token=${plexUserToken}`,
-		{
-			headers: {
-				Accept: 'application/json',
-			},
+	mediaType: PlexMediaType,
+	offset: number,
+	{ preferredServices = false } = {},
+) => {
+	const params = new URLSearchParams({
+		includeFields: preferredServices
+			? 'guid'
+			: 'title,type,year,ratingKey,originallyAvailableAt,guid',
+		type: mediaType,
+		'X-Plex-Token': plexUserToken,
+		'X-Plex-Container-Size': String(PAGE_SIZE),
+		'X-Plex-Container-Start': String(offset),
+	});
+	if (preferredServices) {
+		params.set('preferredServices', '1');
+	} else {
+		params.set('includeGuids', '1');
+		params.set('sort', 'watchlistedAt:desc');
+	}
+	return `${DISCOVER_URL}/library/sections/watchlist/all?${params}`;
+};
+
+/**
+ * Walk every page of a watchlist query.
+ *
+ * @param onPage Receives each page of metadata and returns the page size
+ */
+const eachPage = async <T>(
+	url: (offset: number) => string,
+	label: string,
+	onPage: (metadata: T[]) => void,
+): Promise<void> => {
+	let offset = 0;
+
+	for (let page = 0; page < MAX_PAGES; page++) {
+		if (page > 0) {
+			// Stay friendly to the Plex API while paging through large lists
+			await sleep(100);
+		}
+
+		const body = await fetchPlexJson<PlexContainer<T>>(url(offset), label);
+		const metadata = body.MediaContainer.Metadata ?? [];
+		if (metadata.length === 0) {
+			return;
+		}
+
+		onPage(metadata);
+
+		offset += metadata.length;
+		if (offset >= (body.MediaContainer.totalSize ?? offset)) {
+			return;
+		}
+	}
+};
+
+/**
+ * Every guid on the watchlist that is streamable on a preferred service.
+ *
+ * This is collected up front instead of page by page: the preferred-services
+ * query returns a different, differently ordered result set, so matching it
+ * against the main list offset for offset would exclude the wrong items.
+ */
+const getPreferredServiceGuids = async (
+	plexUserToken: string,
+	mediaType: PlexMediaType,
+): Promise<Set<string>> => {
+	const guids = new Set<string>();
+
+	await eachPage<{ guid?: string }>(
+		(offset) =>
+			watchlistUrl(plexUserToken, mediaType, offset, {
+				preferredServices: true,
+			}),
+		'fetch plex preferred services',
+		(metadata) => {
+			for (const item of metadata) {
+				if (item.guid) {
+					guids.add(item.guid);
+				}
+			}
 		},
 	);
 
-	return res.ok;
+	return guids;
+};
+
+/**
+ * Check whether a Plex token is still valid.
+ * @param plexUserToken The token to validate
+ */
+export const getHealthCheck = async (
+	plexUserToken: string,
+): Promise<boolean> => {
+	try {
+		const res = await fetch(
+			`https://clients.plex.tv/api/v2/user?X-Plex-Token=${encodeURIComponent(plexUserToken)}`,
+			{
+				headers: { Accept: 'application/json' },
+				signal: AbortSignal.timeout(getRequestTimeoutMs()),
+			},
+		);
+		return res.ok;
+	} catch {
+		return false;
+	}
 };
 
 /**
@@ -42,180 +197,51 @@ export const getWatchlist = async (
 	mediaType = PlexMediaType.All,
 	includeStreamable = true,
 ): Promise<MediaItem[]> => {
-	const excludeGuids: Set<string> = new Set<string>();
+	const excludeGuids = includeStreamable
+		? new Set<string>()
+		: await getPreferredServiceGuids(plexUserToken, mediaType);
 
-	// Get a page from the watchlist with the given offset
-	const getWatchlistPage = async (offset = 0) => {
-		const [resAll, resServices] = await Promise.all([
-			fetch(
-				`https://discover.provider.plex.tv/library/sections/watchlist/all?includeFields=title,type,year,ratingKey,originallyAvailableAt,guid&includeGuids=1&sort=watchlistedAt:desc&type=${mediaType}&X-Plex-Token=${plexUserToken}&X-Plex-Container-Size=300&X-Plex-Container-Start=${offset}`,
-				{
-					headers: {
-						Accept: 'application/json',
-					},
-				},
-			),
-			includeStreamable
-				? Promise.resolve({
-						ok: true,
-						status: 200,
-						statusText: 'OK',
-						json: async () => ({ MediaContainer: { Metadata: [] } }),
-					})
-				: fetch(
-						`https://discover.provider.plex.tv/library/sections/watchlist/all?includeFields=guid&type=${mediaType}&X-Plex-Token=${plexUserToken}&preferredServices=1&X-Plex-Container-Size=300&X-Plex-Container-Start=${offset}`,
-						{
-							headers: {
-								Accept: 'application/json',
-							},
-						},
-					),
-		]);
+	const now = new Date();
+	const items: MediaItem[] = [];
 
-		if (!resAll.ok) {
-			throw new Error(
-				`Failed to fetch plex watchlist: ${resAll.status} ${resAll.statusText}`,
-			);
-		}
-		if (!resServices.ok) {
-			throw new Error(
-				`Failed to fetch plex watchlist: ${resServices.status} ${resServices.statusText}`,
-			);
-		}
+	await eachPage<PlexMetadata>(
+		(offset) => watchlistUrl(plexUserToken, mediaType, offset),
+		'fetch plex watchlist',
+		(metadata) => {
+			for (const item of metadata) {
+				// Skip anything that is unreleased or already on a preferred service
+				if (!isReleased(item.originallyAvailableAt, now)) {
+					continue;
+				}
+				if (item.guid && excludeGuids.has(item.guid)) {
+					continue;
+				}
+				items.push(toMediaItem(item));
+			}
+		},
+	);
 
-		const [bodyAll, bodyServices] = await Promise.all([
-			resAll.json() as Promise<{
-				MediaContainer: {
-					totalSize: number;
-					size: number;
-					Metadata: Array<{
-						guid: string;
-						ratingKey: string;
-						type: string;
-						title: string;
-						originallyAvailableAt: string;
-						year: number;
-						Guid: Array<{
-							id: string;
-						}>;
-					}>;
-				};
-			}>,
-			includeStreamable
-				? Promise.resolve({ MediaContainer: { Metadata: [] } })
-				: (resServices.json() as Promise<{
-						MediaContainer: {
-							size: number;
-							Metadata?: Array<{
-								guid: string;
-							}>;
-						};
-					}>),
-		]);
-
-		if (bodyAll.MediaContainer.size === 0) {
-			return {
-				items: [],
-				totalSize: 0,
-				offset: offset,
-			};
-		}
-
-		const newGuids = (bodyServices.MediaContainer.Metadata ?? []).map(
-			(item) => item.guid,
-		);
-		for (const guid of newGuids) {
-			excludeGuids.add(guid);
-		}
-
-		return {
-			items: bodyAll.MediaContainer.Metadata
-				// Only get the shows that are released and are not available in another streaming service
-				.filter(
-					(item) =>
-						new Date(item.originallyAvailableAt) < new Date() &&
-						!excludeGuids.has(item.guid),
-				)
-				// Map everything a MediaItem object
-				.map((item) => ({
-					id: item.ratingKey,
-					type:
-						item.type === 'movie' ? PlexMediaType.Movie : PlexMediaType.Show,
-					title: item.title,
-					originallyAvailableAt: item.originallyAvailableAt,
-					year: item.year,
-					imdbId: item.Guid.find((item) =>
-						item.id.startsWith('imdb'),
-					)?.id.replace('imdb://', ''),
-					tvdbId: item.Guid.find((item) =>
-						item.id.startsWith('tvdb'),
-					)?.id.replace('tvdb://', ''),
-					tmdbId: item.Guid.find((item) =>
-						item.id.startsWith('tmdb'),
-					)?.id.replace('tmdb://', ''),
-				})),
-			totalSize: bodyAll.MediaContainer.totalSize,
-			offset: offset + bodyAll.MediaContainer.size,
-		};
-	};
-
-	// Fetch all the watchlist pages
-	const usableItems = [];
-	const { items, totalSize, offset } = await getWatchlistPage();
-	usableItems.push(...items);
-	let latestOffset = offset;
-	// Keep fetching pages until we have all the items or we have enough
-	while (items.length > 0) {
-		if (usableItems.length >= totalSize) {
-			break;
-		}
-		await new Promise((resolve) => setTimeout(resolve, 100));
-		const plexPage = await getWatchlistPage(latestOffset);
-		// If the offset is the same as the last one, we are done
-		if (plexPage.offset === latestOffset) {
-			break;
-		}
-		// Push the new items to the list and update the offset
-		usableItems.push(...plexPage.items);
-		latestOffset = plexPage.offset;
-	}
-	return usableItems;
+	return items;
 };
 
 /**
  * Fetch the streaming services that are available to the owner
  * @returns An array of strings containing the streaming services
  */
-export const getStreamingServices = async () => {
-	const res = await fetch(
-		`https://discover.provider.plex.tv/settings/preferredServices?X-Plex-Token=${process.env.PLEX_OWNER_TOKEN}`,
-		{
-			headers: {
-				Accept: 'application/json',
-			},
-		},
+export const getStreamingServices = async (): Promise<string[]> => {
+	const body = await fetchPlexJson<{
+		MediaContainer: {
+			size?: number;
+			AvailabilityPlatform?: Array<{ platform: string }>;
+		};
+	}>(
+		`${DISCOVER_URL}/settings/preferredServices?X-Plex-Token=${encodeURIComponent(process.env.PLEX_OWNER_TOKEN ?? '')}`,
+		'fetch plex streaming services',
 	);
 
-	if (!res.ok) {
-		throw new Error(
-			`Failed to fetch plex streaming services: ${res.status} ${res.statusText}`,
-		);
-	}
-
-	const body = await (res.json() as Promise<{
-		MediaContainer: {
-			size: number;
-			AvailabilityPlatform: Array<{
-				platform: string;
-			}>;
-		};
-	}>);
-
-	if (body.MediaContainer.size === 0) {
-		return [];
-	}
-
-	return body.MediaContainer.AvailabilityPlatform.map((item) => item.platform);
+	return (body.MediaContainer.AvailabilityPlatform ?? []).map(
+		(item) => item.platform,
+	);
 };
 
 /**
@@ -228,51 +254,15 @@ export const getMediaItemDetails = async (
 	plexUserToken: string,
 	showId: string,
 ): Promise<MediaItem> => {
-	const res = await fetch(
-		`https://discover.provider.plex.tv/library/metadata/${showId}?X-Plex-Token=${plexUserToken}`,
-		{
-			headers: {
-				Accept: 'application/json',
-			},
-		},
+	const body = await fetchPlexJson<PlexContainer<PlexMetadata>>(
+		`${DISCOVER_URL}/library/metadata/${encodeURIComponent(showId)}?X-Plex-Token=${encodeURIComponent(plexUserToken)}`,
+		`fetch plex media item ${showId}`,
 	);
 
-	if (!res.ok) {
-		throw new Error(
-			`Failed to fetch plex streaming services: ${res.status} ${res.statusText}`,
-		);
+	const firstItem = body.MediaContainer.Metadata?.[0];
+	if (!firstItem) {
+		throw new Error(`Plex returned no metadata for media item ${showId}`);
 	}
 
-	const body = await (res.json() as Promise<{
-		MediaContainer: {
-			Metadata: Array<{
-				ratingKey: string;
-				type: string;
-				title: string;
-				originallyAvailableAt: string;
-				year: number;
-				Guid: Array<{
-					id: string;
-				}>;
-			}>;
-		};
-	}>);
-
-	const firstItem = body.MediaContainer.Metadata[0];
-	return {
-		id: firstItem.ratingKey,
-		type: firstItem.type === 'movie' ? PlexMediaType.Movie : PlexMediaType.Show,
-		title: firstItem.title,
-		originallyAvailableAt: firstItem.originallyAvailableAt,
-		year: firstItem.year,
-		imdbId: firstItem.Guid.find((item) =>
-			item.id.startsWith('imdb'),
-		)?.id.replace('imdb://', ''),
-		tvdbId: firstItem.Guid.find((item) =>
-			item.id.startsWith('tvdb'),
-		)?.id.replace('tvdb://', ''),
-		tmdbId: firstItem.Guid.find((item) =>
-			item.id.startsWith('tmdb'),
-		)?.id.replace('tmdb://', ''),
-	};
+	return toMediaItem(firstItem);
 };

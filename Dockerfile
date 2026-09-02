@@ -1,23 +1,31 @@
-# Use the official Bun image
-FROM oven/bun:latest
+# syntax=docker/dockerfile:1
 
-# Set the working directory
+# Pinned for reproducible builds; Dependabot keeps the version current.
+# The alpine variant is ~43MB instead of ~450MB for the default image.
+FROM oven/bun:1.3.14-alpine AS deps
 WORKDIR /app
 
-# Copy package.json and bun.lockb
-COPY package.json bun.lockb ./
+# Only the manifest and lockfile, so this layer is cached until they change
+COPY package.json bun.lock ./
+# --frozen-lockfile fails loudly instead of silently resolving new versions
+RUN bun install --frozen-lockfile --production && mkdir -p node_modules
 
-# Install dependencies
-RUN bun install
+FROM oven/bun:1.3.14-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
 
-# Copy the rest of the application code
-COPY . .
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json bun.lock tsconfig.json ./
+COPY server.ts health.ts ./
+COPY src ./src
 
-# Expose the port the app runs on
+# Drop root: the image ships with an unprivileged `bun` user
+USER bun
+
 EXPOSE 6464
 
-# Command to run the application
-CMD ["bun", "run", "server.ts"]
+# Validates the Plex tokens, so keep this infrequent to stay within Plex limits
+HEALTHCHECK --interval=3h --timeout=35s --start-period=10s --retries=3 \
+	CMD ["bun", "run", "health.ts"]
 
-HEALTHCHECK --interval=3h --timeout=5s --start-period=5s --retries=3 \
-  CMD bun run health || exit 1
+CMD ["bun", "run", "server.ts"]

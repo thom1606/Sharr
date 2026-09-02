@@ -5,6 +5,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Supported services
 - All documented Plex functions
 
+## 1.0.8
+
+_released `02 Sep 2026`_
+
+This release makes the service a lot cheaper to poll and fixes a number of latent bugs that show up on large watchlists.
+
+- 🐛 Bug fixes
+    - Sonarr items were filtered on their TMDB id while the list exports TVDB ids. Whenever Plex does not supply both ids for a series, it was either dropped or exported as an empty entry.
+    - Media that is streamable on a preferred service is now excluded reliably. The exclusion list is fetched up front instead of page by page, which on watchlists over 300 items per type compared two differently ordered result sets.
+    - The watchlist is no longer cut short at 300 items per type when the first page contains only unreleased or already streamable items.
+    - Plex tokens are no longer included in error responses or logs; only the last four characters are shown.
+- 🐎 Performance improvements
+    - Fetched watchlists are cached for `CACHE_TTL_SECONDS` (5 minutes by default), and polls that arrive at the same time share a single fetch instead of each doing their own.
+    - All configured accounts are fetched concurrently instead of one after another.
+    - Duplicate titles across accounts are merged instead of exported twice.
+    - The Docker image is now Alpine based, runs as a non-root user and no longer ships development dependencies.
+- ⭐️ New features
+    - Configurable `PORT`, `CACHE_TTL_SECONDS` and `PLEX_TIMEOUT_SECONDS`.
+    - Requests to Plex now time out and retry on transient failures instead of hanging.
+- 😴 Other stuff
+    - Updated Biome to 2.x, TypeScript to 5.9, `actions/checkout` to v6 and `setup-bun` to v2.
+    - The Docker build now runs on every pull request, so a broken Dockerfile is caught before release.
+    - Added offline unit tests; the tests that hit the live Plex API are skipped when no token is configured.
+
 ## 1.0.7
 
 _released `05 Jan 2026`_

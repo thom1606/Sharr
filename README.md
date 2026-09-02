@@ -46,10 +46,36 @@ services:
 |----------|-------------|---------|
 | PLEX_OWNER_TOKEN | The token for the owner of the plex server | |
 | PLEX_EXTRA_USER_TOKENS | A comma separated list of tokens for extra users | |
-| IGNORE_PREFERRED_SERVERS | Whether to ignore your preferred services | false |
+| IGNORE_PREFERRED_SERVICES | Whether to ignore your preferred services | `false` |
+| PORT | The port the service listens on | `6464` |
+| CACHE_TTL_SECONDS | How long a fetched watchlist is reused. Set to `0` to disable caching | `300` |
+| PLEX_TIMEOUT_SECONDS | Timeout for a single request to the Plex API | `15` |
+
+### Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/radarr` | The movies on your watchlist, as a Radarr custom list |
+| `/sonarr` | The series on your watchlist, as a Sonarr custom list |
+| `/health` | Returns `200` when every configured Plex token is still valid, `401` otherwise |
+
+The watchlist is cached for `CACHE_TTL_SECONDS`, so frequent polling no longer
+means a full walk through the Plex API on every request.
 
 ## FAQ
 
 ### Where do i find my Plex token?
 
 The plex token can be found by inspecting the network requests in your browser. You can find a guide [here](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/). Every request will have a `X-Plex-Token` header which you can copy.
+
+## Development
+
+Requires [Bun](https://bun.sh).
+
+```bash
+bun install
+bun run dev        # start with hot reload on http://localhost:6464
+bun test           # unit tests; the live Plex tests need PLEX_OWNER_TOKEN
+bun run typecheck  # tsc --noEmit
+bun run lint       # biome
+```

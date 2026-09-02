@@ -1,14 +1,21 @@
 name: 'Build'
 description: 'Sets up the repository'
 
+inputs:
+    bun-version:
+        description: 'The Bun version to install'
+        required: false
+        default: 'latest'
+
 runs:
     using: 'composite'
     steps:
         - name: Setup bun
-          uses: oven-sh/setup-bun@v1
+          uses: oven-sh/setup-bun@v2
           with:
-              bun-version: ${{ matrix.bun-version }}
+              bun-version: ${{ inputs.bun-version }}
 
         - name: Install dependencies
-          run: bun install
+          # Fail loudly when the lockfile is out of date instead of resolving new versions
+          run: bun install --frozen-lockfile
           shell: bash

@@ -1,16 +1,21 @@
 # misc
 .DS_Store
+*.log
 
-# logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# secrets and local state
+.env
+volumes
+localstorage.sqlite
+
+# dependencies and build output
+node_modules
+dist
 
 # project
-.vscode
+.git
 .github
+.vscode
 assets
-volumes
 .dockerignore
 .env.example
 .gitattributes
@@ -18,5 +23,5 @@ volumes
 docker-compose.yml
 Dockerfile
 README.md
-localstorage.sqlite
-node_modules
+CHANGELOG.md
+biome.json

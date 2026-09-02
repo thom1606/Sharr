@@ -1,24 +1,23 @@
 {
 	"name": "sharr",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"author": "Thom van den Broek <info@thomvandenbroek.com>",
 	"repository": "https://github.com/thom1606/sharr.git",
 	"module": "server.ts",
-	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
-		"@types/bun": "latest"
-	},
-	"peerDependencies": {
-		"typescript": "^5.0.0"
-	},
 	"license": "MIT",
+	"type": "module",
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.11",
+		"@types/bun": "^1.4.0",
+		"typescript": "^5.9.3"
+	},
 	"scripts": {
 		"dev": "bun --hot run server.ts",
 		"start": "bun run server.ts",
 		"health": "bun run health.ts",
+		"test": "bun test",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"typecheck": "tsc --noEmit"
-	},
-	"type": "module"
+	}
 }

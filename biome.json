@@ -1,23 +1,22 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.11/schema.json",
 	"files": {
-		"ignore": [
-			".vscode",
-			"assets",
-			"dist",
-			"node_modules",
-			"public",
-			"src-tauri",
-			"src/client"
-		]
+		"includes": ["**", "!**/node_modules", "!**/assets", "!**/volumes"]
 	},
-	"organizeImports": {
-		"enabled": true
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
 	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"preset": "recommended",
+			"correctness": {
+				"noUnusedImports": "error",
+				"noUnusedVariables": "error"
+			}
 		}
 	},
 	"javascript": {

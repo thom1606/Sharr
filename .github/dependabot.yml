@@ -12,3 +12,8 @@ updates:
       directory: '/'
       schedule:
           interval: 'weekly'
+    # Keep the pinned Bun base image in the Dockerfile current
+    - package-ecosystem: 'docker'
+      directory: '/'
+      schedule:
+          interval: 'weekly'

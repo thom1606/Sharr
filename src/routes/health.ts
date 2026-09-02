@@ -1,34 +1,41 @@
+import { getPlexTokens, maskToken } from '../config';
 import { getHealthCheck } from '../utils/plex';
 
-export async function healthHandler(req: Request) {
-	// get all the active plex tokens
-	const clients = [
-		process.env.PLEX_OWNER_TOKEN,
-		...(process.env.PLEX_EXTRA_USER_TOKENS ?? '').split(','),
-	].filter((token) => Boolean(token) && (token ?? '').length > 0);
+export async function healthHandler(): Promise<Response> {
+	const tokens = getPlexTokens();
 
-	// Check the health of all the clients
-	for (const client of clients) {
-		if (!client) {
-			continue;
-		}
-		try {
-			// Try to get the health check for the client
-			if (!(await getHealthCheck(client))) {
-				throw new Error('Failed to get health check');
-			}
-		} catch {
-			// If a single client fails, return a 401
-			return Response.json(
-				{
-					error: `Failed health check for user: ${client}`,
-					client,
-				},
-				{ status: 401 },
-			);
-		}
+	if (tokens.length === 0) {
+		return Response.json(
+			{
+				error: 'No Plex tokens configured',
+				code: 'NO_TOKENS_CONFIGURED',
+			},
+			{ status: 503 },
+		);
 	}
 
-	// If all clients are healthy, return a 200
-	return Response.json({ status: 'ok' });
+	// Check every account at once instead of one after another
+	const results = await Promise.all(
+		tokens.map(async (token) => ({
+			client: maskToken(token),
+			healthy: await getHealthCheck(token),
+		})),
+	);
+
+	const failed = results.filter((result) => !result.healthy);
+	if (failed.length > 0) {
+		const clients = failed.map((result) => result.client);
+		console.error(`[sharr] health check failed for: ${clients.join(', ')}`);
+
+		return Response.json(
+			{
+				error: `Failed health check for users: ${clients.join(', ')}`,
+				code: 'PLEX_TOKEN_INVALID',
+				clients,
+			},
+			{ status: 401 },
+		);
+	}
+
+	return Response.json({ status: 'ok', clients: results.length });
 }
