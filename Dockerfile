@@ -2,7 +2,7 @@
 
 # Pinned for reproducible builds; Dependabot keeps the version current.
 # The alpine variant is ~43MB instead of ~450MB for the default image.
-FROM oven/bun:1.3.14-alpine AS deps
+FROM oven/bun:1.4.0-alpine AS deps
 WORKDIR /app
 
 # Only the manifest and lockfile, so this layer is cached until they change
@@ -10,7 +10,7 @@ COPY package.json bun.lock ./
 # --frozen-lockfile fails loudly instead of silently resolving new versions
 RUN bun install --frozen-lockfile --production && mkdir -p node_modules
 
-FROM oven/bun:1.3.14-alpine AS runtime
+FROM oven/bun:1.4.0-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
